@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 import pandas as pd
 import jinja2
+import os
 
 def load_rack(file, rack):
     with open(file) as json_file:
@@ -15,15 +16,16 @@ def get_temp(host):
         bashCmd = "ssh -l root %s 'hostname ; ipmitool sensor | grep \"Temp\"'" % host
         process = subprocess.Popen(bashCmd, stdout=subprocess.PIPE)
         output, error = process.communicate()
+        process.terminate()
         values = output.decode().split("|")
 
         temps = {
-            "inlet": values[1],
-            "temp1": values[10],
-            "temp2": values[19],
-            "exhaust": values[28],
-            "gpu1": values[37],
-            "gpu2": values[46]
+            "inlet": values[1].strip(),
+            "temp1": values[10].strip(),
+            "temp2": values[19].strip(),
+            "exhaust": values[28].strip(),
+            "gpu1": values[37].strip(),
+            "gpu2": values[46].strip()
         }
         return temps
     except:
@@ -41,9 +43,11 @@ def get_temps_by_rack(file, rack):
     return hosts
 
 def output_to_json(temps, rack):
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
     now = datetime.now()
-    time = now.strftime("%Y_%m_%d_%H_%M.json")
-    filename = "rack%s_%s"%(rack, time)
+    time = now.strftime('%Y_%m_%d_%H_%M')
+    filename = os.path.join('logs', '%s_%s.json'%(rack, time))
     with open(filename, 'w') as outfile:
         json.dump(temps, outfile)
 
@@ -53,10 +57,10 @@ def output_to_stdout(temps, rack):
         values.append([i])
         for j in temps[i]:
             if temps[i][j] != None:
-                values[i-1].append(temps[i][j]['inlet'])
-                values[i-1].append(temps[i][j]['temp1'])
-                values[i-1].append(temps[i][j]['temp2'])
-                values[i-1].append(temps[i][j]['exhaust'])
+                values[i-1].append(temps[i][j]['inlet'].strip())
+                values[i-1].append(temps[i][j]['temp1'].strip())
+                values[i-1].append(temps[i][j]['temp2'].strip())
+                values[i-1].append(temps[i][j]['exhaust'].strip())
     pd.set_option('display.max_columns', 9)
     pd.set_option('display.width', 0)
     values.reverse()
@@ -69,21 +73,55 @@ def output_to_stdout(temps, rack):
         "h2 inlet",
         "h2 temp1",
         "h2 temp2",
-        "h2 exhaust"])
+        "h2 exhaust"
+        ])
     df.style.set_properties(**{'text-align': 'left'})
+    df.reset_index(drop=True)
     print(df)
 
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-f', '--file', help="json file containing lookup tables", action='store', dest='file')
-parser.add_argument('-r', '--rack', help="number or name of rack", action='store', dest='rack')
-parser.add_argument('-j', '--json', help="output to json file", action='store_true', dest='json')
-parser.add_argument('-s', '--stdout', help="output to stdout", action='store_true', dest='stdout')
+parser.add_argument(
+    '-f', '--file',
+    help="json file containing lookup tables",
+    action='store',
+    dest='file'
+    )
+parser.add_argument(
+    '-r', '--racks',
+    help="comma seperated list of racks from lookup tables",
+    action='store',
+    dest='racks'
+    )
+parser.add_argument(
+    '-j', '--json',
+    help="output to json file",
+    action='store_true',
+    dest='json'
+    )
+parser.add_argument(
+    '-s', '--stdout',
+    help="output to stdout",
+    action='store_true',
+    dest='stdout'
+    )
+parser.add_argument(
+    '-i', '--influx',
+    help="output to influxdDB",
+    action='store_true',
+    dest='influx'
+    )
 args = parser.parse_args()
 
-temps = get_temps_by_rack(args.file, args.rack)
-if args.json:
-    output_to_json(temps, args.rack)
-
-if args.stdout:
-    output_to_stdout(temps, args.rack)
+racks = args.racks.split(',')
+for rack in racks:
+    try:
+        temps = get_temps_by_rack(args.file, rack)
+        if args.json:
+            output_to_json(temps, rack)
+        if args.stdout:
+            output_to_stdout(temps, rack)
+        if args.influx:
+            print('influx output not yet implemented')
+    except Exception as ex:
+        print('Rack %s encountered and exception, some parts of the process may still have succeeded' % rack)
+        print(ex)
