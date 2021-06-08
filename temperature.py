@@ -1,10 +1,24 @@
 import argparse
+import jinja2
 import json
+import os
+import pandas as pd
 import subprocess
 from datetime import datetime
-import pandas as pd
-import jinja2
-import os
+
+def scan_racks(racks):
+    for rack in racks:
+        try:
+            temps = get_temps_by_rack(args.file, rack)
+            if args.json:
+                output_to_json(temps, rack)
+            if args.stdout:
+                output_to_stdout(temps, rack)
+            if args.influx:
+                output_to_influx(temps, rack)
+        except Exception as ex:
+            print('Rack %s encountered and exception, some parts of the process may still have succeeded' % rack)
+            print(ex)
 
 def load_rack(file, rack):
     with open(file) as json_file:
@@ -79,18 +93,23 @@ def output_to_stdout(temps, rack):
     df.reset_index(drop=True)
     print(df)
 
+def output_to_influx(temps, rack):
+    print('INFLUXDB NOT YET IMPLEMENTED')
+
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '-f', '--file',
     help="json file containing lookup tables",
     action='store',
-    dest='file'
+    dest='file',
+    required=True
     )
 parser.add_argument(
     '-r', '--racks',
     help="comma seperated list of racks from lookup tables",
     action='store',
-    dest='racks'
+    dest='racks',
+    required=True
     )
 parser.add_argument(
     '-j', '--json',
@@ -113,15 +132,4 @@ parser.add_argument(
 args = parser.parse_args()
 
 racks = args.racks.split(',')
-for rack in racks:
-    try:
-        temps = get_temps_by_rack(args.file, rack)
-        if args.json:
-            output_to_json(temps, rack)
-        if args.stdout:
-            output_to_stdout(temps, rack)
-        if args.influx:
-            print('influx output not yet implemented')
-    except Exception as ex:
-        print('Rack %s encountered and exception, some parts of the process may still have succeeded' % rack)
-        print(ex)
+scan_racks(racks)
