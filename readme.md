@@ -11,7 +11,7 @@ ssh-add path/to/private/key
 
 | Option | Required? | Effect |
 |--------|-----------|--------|
-| -f, --file [filename] | Yes | Specifiy path to json file containing lookup tables for racks. E.g. '-f rack_static_lookup.json' |
+| -f, --file [filename] | Yes | Specify path to json file containing lookup tables for racks. E.g. '-f rack_static_lookup.json' |
 | -r, --rack [keys] | Yes | Comma separated list of keys for racks in the lookup tables. E.g. '-r 406,407' |
 | -j, --json | No | Export the output to a json file in Logs directory. |
 | -s, --stdout | No | Export the output to console stdout in Logs directory. |
