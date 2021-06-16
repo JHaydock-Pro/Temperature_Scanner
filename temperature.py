@@ -25,6 +25,7 @@ def load_rack(file, rack):
         data = json.load(json_file)
     return data[rack]
 
+#TODO: Research if there is a more robust/efficient method of doing this than ssh'ing each host individually and greping stdout
 def get_temp(host):
     try:
         bashCmd = "ssh -l root %s 'hostname ; ipmitool sensor | grep \"Temp\"'" % host
@@ -93,6 +94,7 @@ def output_to_stdout(temps, rack):
     df.reset_index(drop=True)
     print(df)
 
+#TODO: Implement
 def output_to_influx(temps, rack):
     print('INFLUXDB NOT YET IMPLEMENTED')
 

@@ -18,3 +18,10 @@ ssh-add path/to/private/key
 | -i, --influx | No | Export the output to influxDB, NOT YET IMPLEMENTED |
 
 Note: Any hosts that are unreachable or otherwise fail to provide temperatures will simply use None values.
+
+---
+## TODO
+- Output to long-term storage solution such as influxDB.
+- Visualise data, or have something grafana do it.
+- Explore more robust and efficient solutions than individually ssh'ing to each host.
+- Explore more robust solution than grepping stdout.
